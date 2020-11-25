@@ -43,7 +43,7 @@ func newResult() *Result {
 	return r
 }
 
-func (r *Result) merge(datum, mode Coord) {
+func (r *Result) merge(datum, mode DataPt) {
 	// look for existing mode in cluster result
 	for i, cluster := range r.clusters {
 		if mode.Dist(cluster.mode) < ModeDistThreshold {
@@ -54,7 +54,7 @@ func (r *Result) merge(datum, mode Coord) {
 	// create a new cluster with the given mode
 	newCluster := Cluster{
 		mode:    mode,
-		members: []Coord{datum},
+		members: []DataPt{datum},
 	}
 	r.clusters = append(r.clusters, newCluster)
 }
