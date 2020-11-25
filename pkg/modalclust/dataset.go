@@ -3,7 +3,7 @@ package modalclust
 import "math"
 
 // StepDistThreshold is the threshold factor for continuing EM after one step
-var StepDistThreshold float64 = 1e-01
+var StepDistThreshold float64 = 1e-05
 
 // Dataset contains a dataset for executing MAC and MEM
 type Dataset struct {
