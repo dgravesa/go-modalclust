@@ -7,7 +7,7 @@ import (
 )
 
 // StepDistThreshold is the threshold factor for continuing EM after one step
-var StepDistThreshold float64 = 1e-01
+var StepDistThreshold float64 = 1e-05
 
 // Dataset contains a dataset for executing MAC and MEM
 type Dataset struct {
@@ -30,14 +30,14 @@ func (ds *Dataset) MAC(sigma float64) *Result {
 	}
 
 	// initialize per-thread results
-	numGoroutines := parallel.NumGoroutines()
+	numGoroutines := parallel.DefaultNumGoroutines()
 	results := []*Result{}
 	for i := 0; i < numGoroutines; i++ {
 		results = append(results, newResult())
 	}
 
 	// execute MEM on each data point
-	parallel.WithGrID().For(ds.N, func(i, grID int) {
+	parallel.ForWithGrID(ds.N, func(i, grID int) {
 		mode := ds.MEM(ds.data[i], sigma)
 		results[grID].insert(ds.data[i], mode)
 	})

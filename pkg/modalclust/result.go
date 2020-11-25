@@ -5,7 +5,7 @@ import (
 )
 
 // ModeDistThreshold is the allowable distance between two modes that they are still considered equivalent
-var ModeDistThreshold float64 = 1e-02
+var ModeDistThreshold float64 = 1e-01
 
 // Result is the result of a modal association clustering execution
 type Result struct {

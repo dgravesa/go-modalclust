@@ -1,2 +1,6 @@
 github.com/dgravesa/go-parallel v0.0.0-20201125210439-3a4c4f89999b h1:nNv+lTdtbZXK+VXdQMymIxiC3jBPGW5aTC36/3ITW0M=
 github.com/dgravesa/go-parallel v0.0.0-20201125210439-3a4c4f89999b/go.mod h1:JoWGhU5NYLSu+pg6VW0GK1P4K+WmoRNAhebyKGGtclA=
+github.com/dgravesa/go-parallel v0.0.0-20201125223301-6207660ea315 h1:ZvdhKWynkWsknafnzB7e+Iwz/dFc5gc1U7BXZZAaCz0=
+github.com/dgravesa/go-parallel v0.0.0-20201125223301-6207660ea315/go.mod h1:JoWGhU5NYLSu+pg6VW0GK1P4K+WmoRNAhebyKGGtclA=
+github.com/dgravesa/go-parallel v0.0.0-20201125224502-05b15143ba85 h1:00enlwuZjaw92vR22JNuUSELIRZGgcmtY0F8aDz/S78=
+github.com/dgravesa/go-parallel v0.0.0-20201125224502-05b15143ba85/go.mod h1:JoWGhU5NYLSu+pg6VW0GK1P4K+WmoRNAhebyKGGtclA=
