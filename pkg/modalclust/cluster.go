@@ -17,6 +17,7 @@ func (c *Cluster) Members() []Coord {
 }
 
 type clusterJSON struct {
-	Mode    Coord   `json:"mode"`
-	Members []Coord `json:"members"`
+	Mode       Coord   `json:"mode"`
+	Members    []Coord `json:"members"`
+	NumMembers int     `json:"size"`
 }

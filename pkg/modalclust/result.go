@@ -18,7 +18,8 @@ func (r *Result) Clusters() []Cluster {
 }
 
 type resultJSON struct {
-	Clusters []clusterJSON `json:"clusters"`
+	Clusters    []clusterJSON `json:"clusters"`
+	NumClusters int           `json:"count"`
 }
 
 // MarshalJSON marshals a cluster result to JSON bytes
@@ -27,10 +28,12 @@ func (r *Result) MarshalJSON() ([]byte, error) {
 	rjson.Clusters = []clusterJSON{}
 	for _, cluster := range r.Clusters() {
 		rjson.Clusters = append(rjson.Clusters, clusterJSON{
-			Mode:    cluster.Mode(),
-			Members: cluster.Members(),
+			Mode:       cluster.Mode(),
+			Members:    cluster.Members(),
+			NumMembers: len(cluster.Members()),
 		})
 	}
+	rjson.NumClusters = len(rjson.Clusters)
 	return json.Marshal(rjson)
 }
 
