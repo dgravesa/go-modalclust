@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/dgravesa/go-modalclust/pkg/modalclust"
 )
@@ -16,18 +17,24 @@ import (
 func main() {
 	var inputName string
 	var sigma float64
+	var printRuntime bool
 
 	flag.StringVar(&inputName, "InputName", "", "name of the input file")
 	flag.Float64Var(&sigma, "Sigma", 0.3, "sigma value to use for clustering")
+	flag.BoolVar(&printRuntime, "PrintRuntime", false, "print time to generate cluster result")
 	flag.Parse()
 
 	if inputName == "" {
 		log.Fatalln("no input name provided")
 	}
 
+	// read data from file
 	data := parseFileData(inputName)
 
+	// execute clustering
+	t1 := time.Now()
 	result := modalclust.MAC(data, sigma)
+	t2 := time.Now()
 
 	// output results to json
 	resultJSON, err := json.Marshal(result)
@@ -35,6 +42,10 @@ func main() {
 		log.Fatalln(err)
 	}
 	fmt.Println(string(resultJSON))
+
+	if printRuntime {
+		fmt.Println("execution time:", t2.Sub(t1))
+	}
 }
 
 func parseFileData(fname string) []modalclust.Coord {
