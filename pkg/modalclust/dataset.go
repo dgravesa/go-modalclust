@@ -1,6 +1,10 @@
 package modalclust
 
-import "math"
+import (
+	"math"
+
+	"github.com/dgravesa/go-parallel/parallel"
+)
 
 // StepDistThreshold is the threshold factor for continuing EM after one step
 var StepDistThreshold float64 = 1e-01
@@ -25,14 +29,24 @@ func (ds *Dataset) MAC(sigma float64) *Result {
 		return nil
 	}
 
-	result := newResult()
-
-	for i := 0; i < ds.N; i++ {
-		mode := ds.MEM(ds.data[i], sigma)
-		result.merge(ds.data[i], mode)
+	// initialize per-thread results
+	numGoroutines := parallel.NumGoroutines()
+	results := []*Result{}
+	for i := 0; i < numGoroutines; i++ {
+		results = append(results, newResult())
 	}
 
-	return result
+	// execute MEM on each data point
+	parallel.WithGrID().For(ds.N, func(i, grID int) {
+		mode := ds.MEM(ds.data[i], sigma)
+		results[grID].insert(ds.data[i], mode)
+	})
+
+	for i := 1; i < numGoroutines; i++ {
+		results[0].merge(results[i])
+	}
+
+	return results[0]
 }
 
 // MEM executes expectation-maximization on a start coordinate and returns a local mode
