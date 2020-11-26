@@ -2,18 +2,48 @@ package modalclust
 
 import (
 	"encoding/json"
+
+	"github.com/dgravesa/go-parallel/parallel"
 )
 
 // ModeDistThreshold is the allowable distance between two modes that they are still considered equivalent
 var ModeDistThreshold float64 = 1e-01
 
-// Result is the result of a modal association clustering execution
-type Result struct {
+// MAC executes modal association clustering on a data slice
+func MAC(data []DataPt, sigma float64) *MACResult {
+	if data == nil {
+		return nil
+	}
+
+	N := len(data)
+
+	// initialize per-thread results
+	numGoroutines := parallel.DefaultNumGoroutines()
+	results := []*MACResult{}
+	for i := 0; i < numGoroutines; i++ {
+		results = append(results, newMACResult())
+	}
+
+	// execute MEM on each data point
+	parallel.ForWithGrID(N, func(i, grID int) {
+		mode := MEM(data, data[i], sigma)
+		results[grID].insert(data[i], mode)
+	})
+
+	for i := 1; i < numGoroutines; i++ {
+		results[0].merge(results[i])
+	}
+
+	return results[0]
+}
+
+// MACResult is the result of a modal association clustering execution
+type MACResult struct {
 	clusters []Cluster
 }
 
 // Clusters returns the clusters of a modal association clustering result
-func (r *Result) Clusters() []Cluster {
+func (r *MACResult) Clusters() []Cluster {
 	return r.clusters
 }
 
@@ -23,7 +53,7 @@ type resultJSON struct {
 }
 
 // MarshalJSON marshals a cluster result to JSON bytes
-func (r *Result) MarshalJSON() ([]byte, error) {
+func (r *MACResult) MarshalJSON() ([]byte, error) {
 	rjson := resultJSON{}
 	rjson.Clusters = []clusterJSON{}
 	for _, cluster := range r.Clusters() {
@@ -37,13 +67,13 @@ func (r *Result) MarshalJSON() ([]byte, error) {
 	return json.Marshal(rjson)
 }
 
-func newResult() *Result {
-	r := new(Result)
+func newMACResult() *MACResult {
+	r := new(MACResult)
 	r.clusters = []Cluster{}
 	return r
 }
 
-func (r *Result) insert(datum, mode DataPt) {
+func (r *MACResult) insert(datum, mode DataPt) {
 	// look for existing mode in cluster result
 	for i, cluster := range r.clusters {
 		if mode.Dist(cluster.mode) < ModeDistThreshold {
@@ -59,7 +89,7 @@ func (r *Result) insert(datum, mode DataPt) {
 	r.clusters = append(r.clusters, newCluster)
 }
 
-func (r *Result) merge(other *Result) {
+func (r *MACResult) merge(other *MACResult) {
 	for _, oc := range other.clusters {
 		// look for existing mode in my cluster result
 		found := false

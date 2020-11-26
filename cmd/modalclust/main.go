@@ -29,11 +29,11 @@ func main() {
 	}
 
 	// read data from file
-	dataset := parseFileData(inputName)
+	data := parseFileData(inputName)
 
 	// execute clustering
 	t1 := time.Now()
-	result := dataset.MAC(sigma)
+	result := modalclust.MAC(data, sigma)
 	t2 := time.Now()
 
 	// output results to json
@@ -48,7 +48,7 @@ func main() {
 	}
 }
 
-func parseFileData(fname string) *modalclust.Dataset {
+func parseFileData(fname string) []modalclust.DataPt {
 	data := []modalclust.DataPt{}
 
 	f, err := os.Open(fname)
@@ -86,5 +86,5 @@ func parseFileData(fname string) *modalclust.Dataset {
 		lnum++
 	}
 
-	return modalclust.MakeDataset(data)
+	return data
 }
