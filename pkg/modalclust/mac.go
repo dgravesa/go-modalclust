@@ -2,6 +2,8 @@ package modalclust
 
 import (
 	"encoding/json"
+	"math"
+	"runtime"
 
 	"github.com/dgravesa/go-parallel/parallel"
 )
@@ -18,23 +20,30 @@ func MAC(data []DataPt, sigma float64) *MACResult {
 	N := len(data)
 
 	// initialize per-thread results
-	numGoroutines := parallel.DefaultNumGoroutines()
+	numGR := cpuProportion(0.7)
 	results := []*MACResult{}
-	for i := 0; i < numGoroutines; i++ {
+	for i := 0; i < numGR; i++ {
 		results = append(results, newMACResult())
 	}
 
 	// execute MEM on each data point
-	parallel.ForWithGrID(N, func(i, grID int) {
+	parallel.WithNumGoroutines(numGR).ForWithGrID(N, func(i, grID int) {
 		mode := MEM(data, data[i], sigma)
 		results[grID].insert(data[i], mode)
 	})
 
-	for i := 1; i < numGoroutines; i++ {
+	for i := 1; i < numGR; i++ {
 		results[0].merge(results[i])
 	}
 
 	return results[0]
+}
+
+func cpuProportion(p float64) int {
+	// return a proportion of CPUs, minimum of 1
+	numCPU := runtime.NumCPU()
+	pCPU := p * float64(numCPU)
+	return int(math.Max(pCPU, 1.0))
 }
 
 // MACResult is the result of a modal association clustering execution
