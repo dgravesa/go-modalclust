@@ -6,7 +6,7 @@ import "math"
 var StepDistThreshold float64 = 1e-05
 
 // MEM executes expectation-maximization on a start coordinate and returns a local mode
-func MEM(data []DataPt, start DataPt, sigma float64) DataPt {
+func MEM(data []DataPoint, start DataPoint, sigma float64) DataPoint {
 	if data == nil || start == nil {
 		return nil
 	}

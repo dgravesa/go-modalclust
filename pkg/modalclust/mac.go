@@ -10,7 +10,7 @@ import (
 var ModeDistThreshold float64 = 1e-01
 
 // MAC executes modal association clustering on a data slice
-func MAC(data []DataPt, sigma float64) *MACResult {
+func MAC(data []DataPoint, sigma float64) *MACResult {
 	if data == nil {
 		return nil
 	}
@@ -73,7 +73,7 @@ func newMACResult() *MACResult {
 	return r
 }
 
-func (r *MACResult) insert(datum, mode DataPt) {
+func (r *MACResult) insert(datum, mode DataPoint) {
 	// look for existing mode in cluster result
 	for i, cluster := range r.clusters {
 		if mode.Dist(cluster.mode) < ModeDistThreshold {
@@ -84,7 +84,7 @@ func (r *MACResult) insert(datum, mode DataPt) {
 	// create a new cluster with the given mode
 	newCluster := Cluster{
 		mode:    mode,
-		members: []DataPt{datum},
+		members: []DataPoint{datum},
 	}
 	r.clusters = append(r.clusters, newCluster)
 }

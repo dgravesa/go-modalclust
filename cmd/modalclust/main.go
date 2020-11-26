@@ -48,8 +48,8 @@ func main() {
 	}
 }
 
-func parseFileData(fname string) []modalclust.DataPt {
-	data := []modalclust.DataPt{}
+func parseFileData(fname string) []modalclust.DataPoint {
+	data := []modalclust.DataPoint{}
 
 	f, err := os.Open(fname)
 	if err != nil {
@@ -72,7 +72,7 @@ func parseFileData(fname string) []modalclust.DataPt {
 				lnum, N, len(fields))
 		}
 
-		c := make([]float64, len(fields))
+		c := make(modalclust.DataCoord, len(fields))
 		for i := 0; i < len(fields); i++ {
 			val, err := strconv.ParseFloat(fields[i], 64)
 			if err != nil {
@@ -81,7 +81,7 @@ func parseFileData(fname string) []modalclust.DataPt {
 			c[i] = val
 		}
 
-		data = append(data, c)
+		data = append(data, &c)
 
 		lnum++
 	}
