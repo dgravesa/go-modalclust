@@ -15,27 +15,19 @@ func MAC(data []DataPt, sigma float64) *MACResult {
 		return nil
 	}
 
-	N := len(data)
-
-	// initialize per-thread results
+	results := newMACResult()
 	strategy := parallel.WithCPUProportion(0.7)
-	numGoroutines := strategy.NumGoroutines()
-	results := []*MACResult{}
-	for i := 0; i < numGoroutines; i++ {
-		results = append(results, newMACResult())
-	}
+	resultsCh, done := results.newInsertChannel(strategy.NumGoroutines())
 
 	// execute MEM on each data point
-	strategy.ForWithGrID(N, func(i, grID int) {
+	strategy.ForWithGrID(len(data), func(i, grID int) {
 		mode := MEM(data, data[i], sigma)
-		results[grID].insert(data[i], mode)
+		resultsCh <- macInsertPair{data[i], mode}
 	})
+	close(resultsCh)
 
-	for i := 1; i < numGoroutines; i++ {
-		results[0].merge(results[i])
-	}
-
-	return results[0]
+	<-done
+	return results
 }
 
 // MACResult is the result of a modal association clustering execution
@@ -74,6 +66,32 @@ func newMACResult() *MACResult {
 	return r
 }
 
+type macInsertPair struct {
+	datum DataPt
+	mode  DataPt
+}
+
+func (r *MACResult) newInsertChannel(bufferCount int) (chan<- macInsertPair, <-chan bool) {
+	resultsChannel := make(chan macInsertPair, bufferCount)
+	doneChannel := make(chan bool)
+
+	go func() {
+		// insert processing loop
+		for {
+			pair, more := <-resultsChannel
+
+			if more {
+				r.insert(pair.datum, pair.mode)
+			} else {
+				doneChannel <- true
+				return
+			}
+		}
+	}()
+
+	return resultsChannel, doneChannel
+}
+
 func (r *MACResult) insert(datum, mode DataPt) {
 	// look for existing mode in cluster result
 	for i, cluster := range r.clusters {
@@ -88,22 +106,4 @@ func (r *MACResult) insert(datum, mode DataPt) {
 		members: []DataPt{datum},
 	}
 	r.clusters = append(r.clusters, newCluster)
-}
-
-func (r *MACResult) merge(other *MACResult) {
-	for _, oc := range other.clusters {
-		// look for existing mode in my cluster result
-		found := false
-		for ri, rc := range r.clusters {
-			if rc.mode.Dist(oc.mode) < ModeDistThreshold {
-				r.clusters[ri].members = append(r.clusters[ri].members, oc.members...)
-				found = true
-				break
-			}
-		}
-		// create a new cluster in my cluster result
-		if !found {
-			r.clusters = append(r.clusters, oc)
-		}
-	}
 }
