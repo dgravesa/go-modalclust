@@ -48,7 +48,7 @@ func main() {
 		fmt.Println("cluster sizes:", clusterSizes)
 	}
 
-	fmt.Println("execution time:", t2.Sub(t1))
+	fmt.Println(float64(t2.Sub(t1).Microseconds()) / 1000.0)
 }
 
 func parseFileData(fname string) []modalclust.DataPt {
