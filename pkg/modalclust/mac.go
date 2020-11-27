@@ -10,17 +10,16 @@ import (
 var ModeDistThreshold float64 = 1e-01
 
 // MAC executes modal association clustering on a data slice
-func MAC(data []DataPt, sigma float64) *MACResult {
+func MAC(data []DataPt, sigma float64, numGR int) *MACResult {
 	if data == nil {
 		return nil
 	}
 
 	results := newMACResult()
-	strategy := parallel.WithCPUProportion(0.7)
-	resultsCh, done := results.newInsertChannel(strategy.NumGoroutines())
+	resultsCh, done := results.newInsertChannel(numGR)
 
 	// execute MEM on each data point
-	strategy.ForWithGrID(len(data), func(i, grID int) {
+	parallel.WithNumGoroutines(numGR).ForWithGrID(len(data), func(i, grID int) {
 		mode := MEM(data, data[i], sigma)
 		resultsCh <- macInsertPair{data[i], mode}
 	})

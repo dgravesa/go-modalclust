@@ -2,11 +2,11 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -17,11 +17,13 @@ import (
 func main() {
 	var inputName string
 	var sigma float64
-	var printRuntime bool
+	var numGoroutines int
+	var printClusterSizes bool
 
 	flag.StringVar(&inputName, "InputName", "", "name of the input file")
 	flag.Float64Var(&sigma, "Sigma", 0.3, "sigma value to use for clustering")
-	flag.BoolVar(&printRuntime, "PrintRuntime", false, "print time to generate cluster result")
+	flag.IntVar(&numGoroutines, "NumGoroutines", runtime.NumCPU(), "number of parallel goroutines")
+	flag.BoolVar(&printClusterSizes, "PrintClusterSizes", false, "print cluster sizes")
 	flag.Parse()
 
 	if inputName == "" {
@@ -33,19 +35,20 @@ func main() {
 
 	// execute clustering
 	t1 := time.Now()
-	result := modalclust.MAC(data, sigma)
+	result := modalclust.MAC(data, sigma, numGoroutines)
 	t2 := time.Now()
 
-	// output results to json
-	resultJSON, err := json.Marshal(result)
-	if err != nil {
-		log.Fatalln(err)
+	// print high-level results
+	if printClusterSizes {
+		clusterSizes := []int{}
+		for _, c := range result.Clusters() {
+			clusterSize := len(c.Members())
+			clusterSizes = append(clusterSizes, clusterSize)
+		}
+		fmt.Println("cluster sizes:", clusterSizes)
 	}
-	fmt.Println(string(resultJSON))
 
-	if printRuntime {
-		fmt.Println("execution time:", t2.Sub(t1))
-	}
+	fmt.Println("execution time:", t2.Sub(t1))
 }
 
 func parseFileData(fname string) []modalclust.DataPt {
