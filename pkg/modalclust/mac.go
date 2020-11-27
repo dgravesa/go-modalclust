@@ -15,18 +15,38 @@ func MAC(data []DataPt, sigma float64, numGR int) *MACResult {
 		return nil
 	}
 
+	dataCh := newDataChannel(data)
 	results := newMACResult()
 	resultsCh, done := results.newInsertChannel(numGR)
 
 	// execute MEM on each data point
-	parallel.WithNumGoroutines(numGR).ForWithGrID(len(data), func(i, grID int) {
-		mode := MEM(data, data[i], sigma)
-		resultsCh <- macInsertPair{data[i], mode}
+	parallel.For(numGR, func(_ int) {
+		for {
+			datum, more := <-dataCh
+			if !more {
+				break
+			}
+			mode := MEM(data, datum, sigma)
+			resultsCh <- macInsertPair{datum, mode}
+		}
 	})
 	close(resultsCh)
 
 	<-done
 	return results
+}
+
+func newDataChannel(data []DataPt) <-chan DataPt {
+	dataChannel := make(chan DataPt)
+
+	go func() {
+		for _, datum := range data {
+			dataChannel <- datum
+		}
+		close(dataChannel)
+	}()
+
+	return dataChannel
 }
 
 // MACResult is the result of a modal association clustering execution
