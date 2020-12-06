@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime/trace"
 	"strconv"
 	"strings"
 	"time"
@@ -14,14 +15,54 @@ import (
 	"github.com/dgravesa/go-modalclust/pkg/modalclust"
 )
 
-func main() {
-	var inputName string
-	var sigma float64
-	var printRuntime bool
+// command line arguments
+var inputName string
+var sigma float64
+var printRuntime bool
+var traceName string
 
-	flag.StringVar(&inputName, "InputName", "", "name of the input file")
-	flag.Float64Var(&sigma, "Sigma", 0.3, "sigma value to use for clustering")
-	flag.BoolVar(&printRuntime, "PrintRuntime", false, "print time to generate cluster result")
+var macStart time.Time
+var macRuntime time.Duration
+var traceFile *os.File
+
+func preMAC() {
+	if traceName != "" {
+		var err error
+		traceFile, err = os.Create(traceName)
+
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		err = trace.Start(traceFile)
+
+		if err != nil {
+			log.Fatalln(err)
+		}
+	}
+
+	macStart = time.Now()
+}
+
+func postMAC() {
+	macStop := time.Now()
+	macRuntime = macStop.Sub(macStart)
+
+	if traceName != "" {
+		trace.Stop()
+		err := traceFile.Close()
+
+		if err != nil {
+			log.Fatalln(err)
+		}
+	}
+}
+
+func main() {
+	flag.StringVar(&inputName, "input", "", "name of the input file")
+	flag.Float64Var(&sigma, "sigma", 0.3, "sigma value to use for clustering")
+	flag.BoolVar(&printRuntime, "runtime", false, "print time to generate cluster result")
+	flag.StringVar(&traceName, "trace", "", "output trace of MAC to file")
 	flag.Parse()
 
 	if inputName == "" {
@@ -32,9 +73,9 @@ func main() {
 	data := parseFileData(inputName)
 
 	// execute clustering
-	t1 := time.Now()
+	preMAC()
 	result := modalclust.MAC(data, sigma)
-	t2 := time.Now()
+	postMAC()
 
 	// output results to json
 	resultJSON, err := json.Marshal(result)
@@ -44,7 +85,7 @@ func main() {
 	fmt.Println(string(resultJSON))
 
 	if printRuntime {
-		fmt.Println("execution time:", t2.Sub(t1))
+		fmt.Println("execution time:", macRuntime)
 	}
 }
 
