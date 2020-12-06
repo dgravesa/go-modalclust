@@ -16,7 +16,7 @@ func MAC(data []DataPt, sigma float64) *MACResult {
 	}
 
 	results := newMACResult()
-	strategy := parallel.WithCPUProportion(0.7)
+	strategy := parallel.WithCPUProportion(0.75)
 	resultsCh, done := results.newInsertChannel(strategy.NumGoroutines())
 
 	// execute MEM on each data point
