@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime/pprof"
 	"runtime/trace"
 	"strconv"
 	"strings"
@@ -18,51 +19,23 @@ import (
 // command line arguments
 var inputName string
 var sigma float64
+var numGoroutines int
 var printRuntime bool
 var traceName string
+var cpuProfName string
 
 var macStart time.Time
 var macRuntime time.Duration
 var traceFile *os.File
-
-func preMAC() {
-	if traceName != "" {
-		var err error
-		traceFile, err = os.Create(traceName)
-
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		err = trace.Start(traceFile)
-
-		if err != nil {
-			log.Fatalln(err)
-		}
-	}
-
-	macStart = time.Now()
-}
-
-func postMAC() {
-	macStop := time.Now()
-	macRuntime = macStop.Sub(macStart)
-
-	if traceName != "" {
-		trace.Stop()
-		err := traceFile.Close()
-
-		if err != nil {
-			log.Fatalln(err)
-		}
-	}
-}
+var cpuProfFile *os.File
 
 func main() {
 	flag.StringVar(&inputName, "input", "", "name of the input file")
 	flag.Float64Var(&sigma, "sigma", 0.3, "sigma value to use for clustering")
+	flag.IntVar(&numGoroutines, "numgr", 0, "specify number of goroutines to use in MAC computation")
 	flag.BoolVar(&printRuntime, "runtime", false, "print time to generate cluster result")
 	flag.StringVar(&traceName, "trace", "", "output trace of MAC to file")
+	flag.StringVar(&cpuProfName, "cpuprofile", "", "output CPU profile of MAC to file")
 	flag.Parse()
 
 	if inputName == "" {
@@ -71,6 +44,11 @@ func main() {
 
 	// read data from file
 	data := parseFileData(inputName)
+
+	// set number of goroutines if specified
+	if numGoroutines != 0 {
+		modalclust.SetNumGoroutines(numGoroutines)
+	}
 
 	// execute clustering
 	preMAC()
@@ -128,4 +106,61 @@ func parseFileData(fname string) []modalclust.DataPt {
 	}
 
 	return data
+}
+
+func preMAC() {
+	if traceName != "" {
+		var err error
+		traceFile, err = os.Create(traceName)
+
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		err = trace.Start(traceFile)
+
+		if err != nil {
+			log.Fatalln(err)
+		}
+	}
+
+	if cpuProfName != "" {
+		var err error
+		cpuProfFile, err = os.Create(cpuProfName)
+
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		err = pprof.StartCPUProfile(cpuProfFile)
+
+		if err != nil {
+			log.Fatalln(err)
+		}
+	}
+
+	macStart = time.Now()
+}
+
+func postMAC() {
+	macStop := time.Now()
+	macRuntime = macStop.Sub(macStart)
+
+	if traceName != "" {
+		trace.Stop()
+		err := traceFile.Close()
+
+		if err != nil {
+			log.Fatalln(err)
+		}
+	}
+
+	if cpuProfName != "" {
+		pprof.StopCPUProfile()
+		err := cpuProfFile.Close()
+
+		if err != nil {
+			log.Fatalln(err)
+		}
+	}
 }

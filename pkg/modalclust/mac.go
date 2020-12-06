@@ -9,6 +9,15 @@ import (
 // ModeDistThreshold is the allowable distance between two modes that they are still considered equivalent
 var ModeDistThreshold float64 = 1e-01
 
+// number of parallel goroutines to use in calculation; settable at runtime by SetNumGoroutines()
+var numMACGoroutines int = parallel.WithCPUProportion(0.75).NumGoroutines()
+
+// SetNumGoroutines sets the number of goroutines to use in MAC computation.
+// TODO: make this variable per MAC call.
+func SetNumGoroutines(numGR int) {
+	numMACGoroutines = numGR
+}
+
 // MAC executes modal association clustering on a data slice
 func MAC(data []DataPt, sigma float64) *MACResult {
 	if data == nil {
@@ -16,8 +25,8 @@ func MAC(data []DataPt, sigma float64) *MACResult {
 	}
 
 	results := newMACResult()
-	strategy := parallel.WithCPUProportion(0.75)
-	resultsCh, done := results.newInsertChannel(strategy.NumGoroutines())
+	strategy := parallel.WithNumGoroutines(numMACGoroutines)
+	resultsCh, done := results.newInsertChannel(numMACGoroutines)
 
 	// execute MEM on each data point
 	strategy.ForWithGrID(len(data), func(i, grID int) {
