@@ -1,6 +1,8 @@
 package modalclust
 
-import "math"
+import (
+	"math"
+)
 
 // StepDistThreshold is the threshold factor for continuing EM after one step
 var StepDistThreshold float64 = 1e-05
@@ -12,15 +14,20 @@ func MEM(data []DataPt, start DataPt, sigma float64) DataPt {
 	}
 
 	N := len(data)
-
-	current := start
 	p := make([]float64, N)
+
+	dim := len(start)
+	current := make(DataPt, dim)
+	next := make(DataPt, dim)
+	nudge := make(DataPt, dim)
+
+	start.copyTo(&current)
 
 	stepDist := math.MaxFloat64
 	for stepDist > StepDistThreshold*sigma {
 		// compute density impacts from each coordinate
 		for i := 0; i < N; i++ {
-			distOverSig := current.Dist(data[i]) / sigma
+			distOverSig := current.dist(data[i]) / sigma
 			p[i] = math.Exp(-0.5 * distOverSig * distOverSig)
 		}
 
@@ -35,15 +42,15 @@ func MEM(data []DataPt, start DataPt, sigma float64) DataPt {
 		}
 
 		// compute next position
-		next := data[0].Scale(p[0])
+		data[0].storeScale(p[0], &next)
 		for i := 1; i < N; i++ {
-			nudge := data[i].Scale(p[i])
-			next = next.Add(nudge)
+			data[i].storeScale(p[i], &nudge)
+			next.storeAdd(nudge, &next)
 		}
 
 		// compute distance traveled in step
-		stepDist = current.Dist(next)
-		current = next
+		stepDist = current.dist(next)
+		next.copyTo(&current)
 	}
 
 	return current

@@ -104,7 +104,7 @@ func (r *MACResult) newInsertChannel(bufferCount int) (chan<- macInsertPair, <-c
 func (r *MACResult) insert(datum, mode DataPt) {
 	// look for existing mode in cluster result
 	for i, cluster := range r.clusters {
-		if mode.Dist(cluster.mode) < ModeDistThreshold {
+		if mode.dist(cluster.mode) < ModeDistThreshold {
 			r.clusters[i].members = append(r.clusters[i].members, datum)
 			return
 		}

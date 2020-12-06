@@ -2,11 +2,11 @@ package modalclust
 
 import "math"
 
-// DataPt represents a float64-based N-dimensional data point
+// DataPt represents a float64-based N-dimensional data point.
 type DataPt []float64
 
-// Dist returns the distance between two coordinates
-func (dp DataPt) Dist(other DataPt) float64 {
+// dist returns the distance between two coordinates
+func (dp DataPt) dist(other DataPt) float64 {
 	distSq := 0.0
 
 	for i := 0; i < len(dp); i++ {
@@ -17,24 +17,26 @@ func (dp DataPt) Dist(other DataPt) float64 {
 	return math.Sqrt(distSq)
 }
 
-// Add returns the addition result of this and another coordinate
-func (dp DataPt) Add(other DataPt) DataPt {
-	result := make(DataPt, len(dp))
-
+// storeAdd computes the result of dp + other and stores the outcome in result.
+// This function assumes that result has already been allocated and has same dimension as dp.
+func (dp DataPt) storeAdd(other DataPt, result *DataPt) {
 	for i := 0; i < len(dp); i++ {
-		result[i] = dp[i] + other[i]
+		(*result)[i] = dp[i] + other[i]
 	}
-
-	return result
 }
 
-// Scale returns the result of the coordinate scaled by a factor
-func (dp DataPt) Scale(scalar float64) DataPt {
-	result := make(DataPt, len(dp))
-
+// storeScale computes the result of scalar * dp and stores the outcome in result.
+// This function assumes that result has already been allocated and has same dimension as dp.
+func (dp DataPt) storeScale(scalar float64, result *DataPt) {
 	for i := 0; i < len(dp); i++ {
-		result[i] = scalar * dp[i]
+		(*result)[i] = scalar * dp[i]
 	}
+}
 
-	return result
+// copyTo copies dp into other.
+// This function assumes that other has already been allocated and has same dimension as dp.
+func (dp DataPt) copyTo(other *DataPt) {
+	for i := 0; i < len(dp); i++ {
+		(*other)[i] = dp[i]
+	}
 }
