@@ -2,6 +2,7 @@ package modalclust
 
 import (
 	"encoding/json"
+	"sync"
 
 	"github.com/dgravesa/go-parallel/parallel"
 )
@@ -27,7 +28,6 @@ func MAC(data []DataPt, sigma float64) *MACResult {
 	dataCh := newDataChannel(data)
 	results := newMACResult()
 	strategy := parallel.WithNumGoroutines(numMACGoroutines)
-	resultsCh, done := results.newInsertChannel(numMACGoroutines)
 
 	// execute MEM on each data point
 	strategy.For(numMACGoroutines, func(_ int) {
@@ -37,12 +37,10 @@ func MAC(data []DataPt, sigma float64) *MACResult {
 				break
 			}
 			mode := MEM(data, datum, sigma)
-			resultsCh <- macInsertPair{datum, mode}
+			results.insert(datum, mode)
 		}
 	})
-	close(resultsCh)
 
-	<-done
 	return results
 }
 
@@ -61,7 +59,8 @@ func newDataChannel(data []DataPt) <-chan DataPt {
 
 // MACResult is the result of a modal association clustering execution
 type MACResult struct {
-	clusters []Cluster
+	clusters      []Cluster
+	clustersMutex *sync.RWMutex
 }
 
 // Clusters returns the clusters of a modal association clustering result
@@ -92,6 +91,7 @@ func (r *MACResult) MarshalJSON() ([]byte, error) {
 func newMACResult() *MACResult {
 	r := new(MACResult)
 	r.clusters = []Cluster{}
+	r.clustersMutex = new(sync.RWMutex)
 	return r
 }
 
@@ -100,39 +100,25 @@ type macInsertPair struct {
 	mode  DataPt
 }
 
-func (r *MACResult) newInsertChannel(bufferCount int) (chan<- macInsertPair, <-chan bool) {
-	resultsChannel := make(chan macInsertPair, bufferCount)
-	doneChannel := make(chan bool)
-
-	go func() {
-		// insert processing loop
-		for {
-			pair, more := <-resultsChannel
-
-			if more {
-				r.insert(pair.datum, pair.mode)
-			} else {
-				doneChannel <- true
-				return
-			}
-		}
-	}()
-
-	return resultsChannel, doneChannel
-}
-
+// insert is a thread-safe call to merge a datum-mode pair into a clustering result
 func (r *MACResult) insert(datum, mode DataPt) {
 	// look for existing mode in cluster result
-	for i, cluster := range r.clusters {
+	r.clustersMutex.RLock()
+	for i := 0; i < len(r.clusters); i++ {
+		cluster := &r.clusters[i]
+
 		if mode.dist(cluster.mode) < ModeDistThreshold {
-			r.clusters[i].members = append(r.clusters[i].members, datum)
+			// insert into existing cluster
+			cluster.insert(datum)
+			r.clustersMutex.RUnlock()
 			return
 		}
 	}
+	r.clustersMutex.RUnlock()
+
 	// create a new cluster with the given mode
-	newCluster := Cluster{
-		mode:    mode,
-		members: []DataPt{datum},
-	}
-	r.clusters = append(r.clusters, newCluster)
+	cluster := makeCluster(mode, datum)
+	r.clustersMutex.Lock()
+	r.clusters = append(r.clusters, cluster)
+	r.clustersMutex.Unlock()
 }
