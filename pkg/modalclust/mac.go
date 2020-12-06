@@ -11,7 +11,7 @@ import (
 var ModeDistThreshold float64 = 1e-01
 
 // number of parallel goroutines to use in calculation; settable at runtime by SetNumGoroutines()
-var numMACGoroutines int = parallel.WithCPUProportion(0.75).NumGoroutines()
+var numMACGoroutines int = parallel.DefaultNumGoroutines()
 
 // SetNumGoroutines sets the number of goroutines to use in MAC computation.
 // TODO: make this variable per MAC call.
@@ -25,14 +25,14 @@ func MAC(data []DataPt, sigma float64) *MACResult {
 		return nil
 	}
 
-	dataCh := newDataChannel(data)
+	input := newInputRetriever(data)
 	results := newMACResult()
 	strategy := parallel.WithNumGoroutines(numMACGoroutines)
 
 	// execute MEM on each data point
 	strategy.For(numMACGoroutines, func(_ int) {
 		for {
-			datum, more := <-dataCh
+			datum, more := input.fetch()
 			if !more {
 				break
 			}
@@ -42,19 +42,6 @@ func MAC(data []DataPt, sigma float64) *MACResult {
 	})
 
 	return results
-}
-
-func newDataChannel(data []DataPt) <-chan DataPt {
-	dataChannel := make(chan DataPt)
-
-	go func() {
-		for _, datum := range data {
-			dataChannel <- datum
-		}
-		close(dataChannel)
-	}()
-
-	return dataChannel
 }
 
 // MACResult is the result of a modal association clustering execution
@@ -86,6 +73,35 @@ func (r *MACResult) MarshalJSON() ([]byte, error) {
 	}
 	rjson.NumClusters = len(rjson.Clusters)
 	return json.Marshal(rjson)
+}
+
+type inputRetriever struct {
+	data         []DataPt
+	dataLen      int
+	currentIndex int
+	fetchMutex   *sync.Mutex
+}
+
+func newInputRetriever(data []DataPt) inputRetriever {
+	return inputRetriever{
+		data:         data,
+		dataLen:      len(data),
+		currentIndex: 0,
+		fetchMutex:   new(sync.Mutex),
+	}
+}
+
+func (ir *inputRetriever) fetch() (DataPt, bool) {
+	ir.fetchMutex.Lock()
+	defer ir.fetchMutex.Unlock()
+
+	if ir.currentIndex >= ir.dataLen {
+		return nil, false
+	}
+
+	datum := ir.data[ir.currentIndex]
+	ir.currentIndex++
+	return datum, true
 }
 
 func newMACResult() *MACResult {
