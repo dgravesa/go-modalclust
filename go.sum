@@ -13,3 +13,8 @@ github.com/dgravesa/go-parallel v0.1.0 h1:uRQq7G4lIAMbvVwUMzNOxaigX9hB2WBFp1qUbh
 github.com/dgravesa/go-parallel v0.1.0/go.mod h1:JoWGhU5NYLSu+pg6VW0GK1P4K+WmoRNAhebyKGGtclA=
 github.com/dgravesa/go-parallel v0.2.0 h1:27090AWyk6XHeK+gnOVJ8C0anutANR/wU4HSOZaaoMA=
 github.com/dgravesa/go-parallel v0.2.0/go.mod h1:JoWGhU5NYLSu+pg6VW0GK1P4K+WmoRNAhebyKGGtclA=
+github.com/dgravesa/go-parallel v0.3.0 h1:yLy8pbItkfpVeFtwi4kNXYItbTYooo+n3LupFuP6AKs=
+github.com/dgravesa/go-parallel v0.3.1-0.20201213010944-851ff0e4fa00 h1:6oEcSGZYx2fqO5OhfDJ8Ih2wyiNfwiDfHrQDAdfYCPw=
+github.com/dgravesa/go-parallel v0.3.1-0.20201213010944-851ff0e4fa00/go.mod h1:JoWGhU5NYLSu+pg6VW0GK1P4K+WmoRNAhebyKGGtclA=
+github.com/dgravesa/go-parallel v0.3.1 h1:JRODeratQ6lcfbRq+b12jpRXm90US9Kct2kY26Hz0Uc=
+github.com/dgravesa/go-parallel v0.3.1/go.mod h1:JoWGhU5NYLSu+pg6VW0GK1P4K+WmoRNAhebyKGGtclA=

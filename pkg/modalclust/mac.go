@@ -25,20 +25,14 @@ func MAC(data []DataPt, sigma float64) *MACResult {
 		return nil
 	}
 
-	input := newInputRetriever(data)
 	results := newMACResult()
-	strategy := parallel.WithNumGoroutines(numMACGoroutines)
+	executor := parallel.WithNumGoroutines(numMACGoroutines).
+		WithStrategy(parallel.StrategyAtomicCounter)
 
 	// execute MEM on each data point
-	strategy.For(numMACGoroutines, func(_ int) {
-		for {
-			datum, more := input.fetch()
-			if !more {
-				break
-			}
-			mode := MEM(data, datum, sigma)
-			results.insert(datum, mode)
-		}
+	executor.For(len(data), func(i int) {
+		mode := MEM(data, data[i], sigma)
+		results.insert(data[i], mode)
 	})
 
 	return results
@@ -73,35 +67,6 @@ func (r *MACResult) MarshalJSON() ([]byte, error) {
 	}
 	rjson.NumClusters = len(rjson.Clusters)
 	return json.Marshal(rjson)
-}
-
-type inputRetriever struct {
-	data         []DataPt
-	dataLen      int
-	currentIndex int
-	fetchMutex   *sync.Mutex
-}
-
-func newInputRetriever(data []DataPt) inputRetriever {
-	return inputRetriever{
-		data:         data,
-		dataLen:      len(data),
-		currentIndex: 0,
-		fetchMutex:   new(sync.Mutex),
-	}
-}
-
-func (ir *inputRetriever) fetch() (DataPt, bool) {
-	ir.fetchMutex.Lock()
-	defer ir.fetchMutex.Unlock()
-
-	if ir.currentIndex >= ir.dataLen {
-		return nil, false
-	}
-
-	datum := ir.data[ir.currentIndex]
-	ir.currentIndex++
-	return datum, true
 }
 
 func newMACResult() *MACResult {
