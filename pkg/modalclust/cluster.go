@@ -27,8 +27,8 @@ type clusterJSON struct {
 	NumMembers int      `json:"size"`
 }
 
-func makeCluster(mode DataPt, members ...DataPt) Cluster {
-	return Cluster{
+func newCluster(mode DataPt, members ...DataPt) *Cluster {
+	return &Cluster{
 		mode:        mode,
 		members:     members,
 		insertMutex: new(sync.Mutex),

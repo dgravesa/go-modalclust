@@ -40,12 +40,12 @@ func MAC(data []DataPt, sigma float64) *MACResult {
 
 // MACResult is the result of a modal association clustering execution
 type MACResult struct {
-	clusters      []Cluster
+	clusters      []*Cluster
 	clustersMutex *sync.RWMutex
 }
 
 // Clusters returns the clusters of a modal association clustering result
-func (r *MACResult) Clusters() []Cluster {
+func (r *MACResult) Clusters() []*Cluster {
 	return r.clusters
 }
 
@@ -71,7 +71,7 @@ func (r *MACResult) MarshalJSON() ([]byte, error) {
 
 func newMACResult() *MACResult {
 	r := new(MACResult)
-	r.clusters = []Cluster{}
+	r.clusters = []*Cluster{}
 	r.clustersMutex = new(sync.RWMutex)
 	return r
 }
@@ -85,21 +85,34 @@ type macInsertPair struct {
 func (r *MACResult) insert(datum, mode DataPt) {
 	// look for existing mode in cluster result
 	r.clustersMutex.RLock()
-	for i := 0; i < len(r.clusters); i++ {
-		cluster := &r.clusters[i]
-
-		if mode.dist(cluster.mode) < ModeDistThreshold {
-			// insert into existing cluster
-			cluster.insert(datum)
-			r.clustersMutex.RUnlock()
-			return
-		}
-	}
+	cluster := r.findCluster(mode)
 	r.clustersMutex.RUnlock()
 
-	// create a new cluster with the given mode
-	cluster := makeCluster(mode, datum)
+	// insert into existing cluster
+	if cluster != nil {
+		cluster.insert(datum)
+		return
+	}
+
 	r.clustersMutex.Lock()
-	r.clusters = append(r.clusters, cluster)
+	if cluster = r.findCluster(mode); cluster != nil {
+		// insert into recently created cluster
+		cluster.insert(datum)
+	} else {
+		// create a new cluster with the given mode
+		cluster = newCluster(mode, datum)
+		r.clusters = append(r.clusters, cluster)
+	}
 	r.clustersMutex.Unlock()
+}
+
+func (r *MACResult) findCluster(mode DataPt) *Cluster {
+	for i := 0; i < len(r.clusters); i++ {
+		cluster := r.clusters[i]
+
+		if mode.dist(cluster.mode) < ModeDistThreshold {
+			return cluster
+		}
+	}
+	return nil
 }
