@@ -27,7 +27,7 @@ func MAC(data []DataPt, sigma float64) *MACResult {
 		WithStrategy(parallel.StrategyAtomicCounter)
 
 	// execute MEM on each data point
-	executor.For(len(data), func(i int) {
+	executor.For(len(data), func(i, _ int) {
 		mode := MEM(data, data[i], sigma)
 		results.insert(data[i], mode)
 	})
